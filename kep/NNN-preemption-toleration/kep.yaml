@@ -1,0 +1,12 @@
+title: Preemption Toleration
+kep-number: NNN
+authors:
+  - "@everpeace"
+  - "@ordovicia"
+  - "@shioshiota"
+owning-sig: sig-scheduling
+reviewers: [] # TBD
+approvers: [] # TBD
+creation-date: TBD
+last-updated: TBD
+status: implementable
