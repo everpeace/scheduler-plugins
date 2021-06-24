@@ -140,3 +140,38 @@ type NodeResourceTopologyMatchArgs struct {
 	MasterOverride *string  `json:"masteroverride,omitempty"`
 	Namespaces     []string `json:"namespaces,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// PreemptionTolerationArgs holds arguments used to configure PreemptionToleration plugin.
+// Note: This is identical to DefaultPluginArgs.
+type PreemptionTolerationArgs struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// MinCandidateNodesPercentage is the minimum number of candidates to
+	// shortlist when dry running preemption as a percentage of number of nodes.
+	// Must be in the range [0, 100]. Defaults to 10% of the cluster size if
+	// unspecified.
+	MinCandidateNodesPercentage *int32 `json:"minCandidateNodesPercentage,omitempty"`
+	// MinCandidateNodesAbsolute is the absolute minimum number of candidates to
+	// shortlist. The likely number of candidates enumerated for dry running
+	// preemption is given by the formula:
+	// numCandidates = max(numNodes * minCandidateNodesPercentage, minCandidateNodesAbsolute)
+	// We say "likely" because there are other factors such as PDB violations
+	// that play a role in the number of candidates shortlisted. Must be at least
+	// 0 nodes. Defaults to 100 nodes if unspecified.
+	MinCandidateNodesAbsolute *int32 `json:"minCandidateNodesAbsolute,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// PreemptionToleration holds preemption toleration configuration used by PreemptionToleration plugin. This configuration will be annotated to PriorityClass resources.
+type PreemptionToleration struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// MinimumPreemptablePriority specifies the minimum priority value that can preempt this priority class. The default value is the value of annotated priority class.
+	MinimumPreemptablePriority *int32 `json:"minimumPreemptablePriority,omitempty"`
+
+	// TolerationSeconds specified how long this priority class can tolerate preemption by priorities lower than MinimumPreemptablePriority.  The default value is forever.  Duration means the duration from the pod being scheduled to some node. This value affects only to scheduled pods (no effect on nominated nodes).
+	TolerationSeconds *int64 `json:"tolerationSeconds,omitempty"`
+}

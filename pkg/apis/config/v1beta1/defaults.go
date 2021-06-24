@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schedulerconfig "k8s.io/kube-scheduler/config/v1"
+	"k8s.io/utils/pointer"
 
 	pluginConfig "sigs.k8s.io/scheduler-plugins/pkg/apis/config"
 )
@@ -138,5 +139,15 @@ func SetDefaultsNodeResourceTopologyMatchArgs(obj *NodeResourceTopologyMatchArgs
 	}
 	if len(obj.Namespaces) == 0 {
 		obj.Namespaces = []string{metav1.NamespaceDefault}
+	}
+}
+
+// SetDefaultsPreemptionTolerationArgs sets the default parameters for PreemptionToleration plugin.
+func SetDefaultsPreemptionTolerationArgs(obj *PreemptionTolerationArgs) {
+	if obj.MinCandidateNodesPercentage == nil {
+		obj.MinCandidateNodesPercentage = pointer.Int32Ptr(10)
+	}
+	if obj.MinCandidateNodesAbsolute == nil {
+		obj.MinCandidateNodesAbsolute = pointer.Int32Ptr(100)
 	}
 }

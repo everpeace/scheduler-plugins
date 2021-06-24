@@ -143,3 +143,21 @@ type NodeResourceTopologyMatchArgs struct {
 	// Namespaces to be considered by NodeResourceTopologyMatch plugin
 	Namespaces []string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// PreemptionTolerationArgs holds arguments used to configure PreemptionToleration plugin.
+type PreemptionTolerationArgs struct {
+	metav1.TypeMeta
+	MinCandidateNodesPercentage int32
+	MinCandidateNodesAbsolute   int32
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// PreemptionToleration holds preemption toleration configuration used by PreemptionToleration plugin. This configuration will be annotated to PriorityClass resources.
+type PreemptionToleration struct {
+	metav1.TypeMeta
+	MinimumPreemptablePriority *int32
+	TolerationSeconds          *int64
+}

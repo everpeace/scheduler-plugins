@@ -42,6 +42,9 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 	scheme.AddTypeDefaultingFunc(&NodeResourceTopologyMatchArgs{}, func(obj interface{}) {
 		SetDefaultsNodeResourceTopologyMatchArgs(obj.(*NodeResourceTopologyMatchArgs))
 	})
+	scheme.AddTypeDefaultingFunc(&PreemptionTolerationArgs{}, func(obj interface{}) {
+		SetObjectDefaultsPreemptionTolerationArgs(obj.(*PreemptionTolerationArgs))
+	})
 	return nil
 }
 
@@ -63,4 +66,8 @@ func SetObjectDefaultsTargetLoadPackingArgs(in *TargetLoadPackingArgs) {
 
 func SetObjectDefaultsLoadVariationRiskBalancingArgs(in *LoadVariationRiskBalancingArgs) {
 	SetDefaultLoadVariationRiskBalancingArgs(in)
+}
+
+func SetObjectDefaultsPreemptionTolerationArgs(in *PreemptionTolerationArgs) {
+	SetDefaultsPreemptionTolerationArgs(in)
 }
