@@ -87,8 +87,8 @@ type PreemptionToleration struct {
   // MinimumPreemptablePriority specifies the minimum priority value that can preempt this priority class.
   MinimumPreemptablePriority *int32 `json:"minimumPreemptablePriority,omitempty"`
 
-  // TolerationSeconds specified how long this priority class can tolerate preemption by priorities lower than MinimumPreemptablePriority.  Null value specifies forever (default).  Duration means the duration from the pod being scheduled to some node.  This value affects only to scheduled pods (no effect on nominated nodes).
-  TolerationSeconds *time.Duration `json:"tolerationSeconds,omitempty"`
+  // TolerationSeconds specified how many seconds this priority class can tolerate preemption by priorities lower than MinimumPreemptablePriority.  Null value specifies forever (default).  Duration means the duration from the pod being scheduled to some node.  This value affects only to scheduled pods (no effect on nominated nodes).
+  TolerationSeconds *int64 `json:"tolerationSeconds,omitempty"`
 
   // more policy will arise in the future.
 }
@@ -110,7 +110,7 @@ metadata:
       minimumPreemptablePriority: 10000
 
       # And it can tolerate preemption in 1 hour by the pod with priority (8000 <= p < 10000).
-      tolerationSeconds: 1h
+      tolerationSeconds: 3600
 value: 8000
 ```
 
