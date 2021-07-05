@@ -152,12 +152,3 @@ type PreemptionTolerationArgs struct {
 	MinCandidateNodesPercentage int32
 	MinCandidateNodesAbsolute   int32
 }
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// PreemptionToleration holds preemption toleration configuration used by PreemptionToleration plugin. This configuration will be annotated to PriorityClass resources.
-type PreemptionToleration struct {
-	metav1.TypeMeta
-	MinimumPreemptablePriority *int32
-	TolerationSeconds          *int64
-}

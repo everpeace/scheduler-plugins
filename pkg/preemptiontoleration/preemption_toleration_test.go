@@ -2,6 +2,7 @@ package preemptiontoleration
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -9,9 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/scheduler-plugins/pkg/apis/config"
-	"sigs.k8s.io/scheduler-plugins/pkg/apis/config/v1beta1"
-	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
@@ -26,7 +24,7 @@ func TestGetCompletedPreemptionToleration(t *testing.T) {
 	tests := []struct {
 		name          string
 		priorityClass *schedulingv1.PriorityClass
-		want          *config.PreemptionToleration
+		want          *PreemptionTolerationPolicy
 	}{
 		{
 			name:          "nil just returns nil",
@@ -35,29 +33,29 @@ func TestGetCompletedPreemptionToleration(t *testing.T) {
 		},
 		{
 			name:          "empty preemption toleration completes MinimumPreemptablePriority",
-			priorityClass: makePriorityClass(t, samplePriority, &v1beta1.PreemptionToleration{}),
-			want: &config.PreemptionToleration{
+			priorityClass: makePriorityClass(t, samplePriority, &PreemptionTolerationPolicy{}),
+			want: &PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(samplePriority + 1),
 				TolerationSeconds:          nil,
 			},
 		},
 		{
 			name: "preemption toleration does not complete TolerationSeconds",
-			priorityClass: makePriorityClass(t, samplePriority, &v1beta1.PreemptionToleration{
+			priorityClass: makePriorityClass(t, samplePriority, &PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(samplePriority + 10),
 			}),
-			want: &config.PreemptionToleration{
+			want: &PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(samplePriority + 10),
 				TolerationSeconds:          nil,
 			},
 		},
 		{
 			name: "no empty fields does not complete any fields",
-			priorityClass: makePriorityClass(t, samplePriority, &v1beta1.PreemptionToleration{
+			priorityClass: makePriorityClass(t, samplePriority, &PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(samplePriority + 10),
 				TolerationSeconds:          pointer.Int64Ptr(10),
 			}),
-			want: &config.PreemptionToleration{
+			want: &PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(samplePriority + 10),
 				TolerationSeconds:          pointer.Int64Ptr(10),
 			},
@@ -66,7 +64,7 @@ func TestGetCompletedPreemptionToleration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getCompletedPreemptionToleration(*tt.priorityClass)
+			got, err := GetCompletedPreemptionToleration(*tt.priorityClass)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -95,7 +93,7 @@ type testCase struct {
 
 func TestCanToleratePreemptionWithoutTolerationSeconds(t *testing.T) {
 	minimumPreemptablePriority := samplePriority + 10
-	preemptionToleration := &v1beta1.PreemptionToleration{
+	preemptionToleration := &PreemptionTolerationPolicy{
 		// it can tolerate preemption by p < samplePriority
 		// (i.e. samplePriority+1 can preempt it)
 		MinimumPreemptablePriority: pointer.Int32Ptr(minimumPreemptablePriority),
@@ -146,7 +144,7 @@ func TestCanToleratePreemptionWithoutTolerationSeconds(t *testing.T) {
 func TestCanToleratePreemptionWithTolerationSeconds(t *testing.T) {
 	minimumPreemptablePriority := samplePriority + 10
 	tolerationSeconds := int64(600)
-	preemptionToleration := &v1beta1.PreemptionToleration{
+	preemptionToleration := &PreemptionTolerationPolicy{
 		// it can tolerate preemption by p < samplePriority
 		MinimumPreemptablePriority: pointer.Int32Ptr(minimumPreemptablePriority),
 		TolerationSeconds:          pointer.Int64Ptr(tolerationSeconds),
@@ -196,7 +194,7 @@ func makeVictimCandidate(pw *st.PodWrapper, secondsFromScheduled *int64) *v1.Pod
 	return pw.Obj()
 }
 
-func makePriorityClass(t *testing.T, value int32, pt *v1beta1.PreemptionToleration) *schedulingv1.PriorityClass {
+func makePriorityClass(t *testing.T, value int32, policy *PreemptionTolerationPolicy) *schedulingv1.PriorityClass {
 	pc := &schedulingv1.PriorityClass{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: schedulingv1.SchemeGroupVersion.String(),
@@ -205,14 +203,15 @@ func makePriorityClass(t *testing.T, value int32, pt *v1beta1.PreemptionTolerati
 		ObjectMeta: metav1.ObjectMeta{Name: priorityClassName, Annotations: map[string]string{}},
 		Value:      value,
 	}
-	if pt != nil {
-		pt.APIVersion = v1beta1.SchemeGroupVersion.String()
-		pt.Kind = "PreemptionToleration"
-		raw, err := yaml.Marshal(pt)
-		if err != nil {
-			t.Fatal(err)
-		}
-		pc.Annotations[AnnotationKey] = string(raw)
+	if policy == nil {
+		return pc
+	}
+	pc.Annotations[AnnotationKeyPrefix+"enabled"] = ""
+	if policy.MinimumPreemptablePriority != nil {
+		pc.Annotations[AnnotationKeyPrefix+"minimum-preemptable-priority"] = fmt.Sprintf("%d", *policy.MinimumPreemptablePriority)
+	}
+	if policy.TolerationSeconds != nil {
+		pc.Annotations[AnnotationKeyPrefix+"toleration-seconds"] = fmt.Sprintf("%d", *policy.TolerationSeconds)
 	}
 	return pc
 }

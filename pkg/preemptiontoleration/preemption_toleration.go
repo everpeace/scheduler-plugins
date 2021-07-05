@@ -24,7 +24,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
-	schedulingv1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -40,7 +39,6 @@ import (
 	dp "k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultpreemption"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/scheduler/util"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/scheduler-plugins/pkg/apis/config"
 	configscheme "sigs.k8s.io/scheduler-plugins/pkg/apis/config/scheme"
 	"sigs.k8s.io/scheduler-plugins/pkg/apis/config/v1beta1"
@@ -50,8 +48,8 @@ import (
 
 const (
 	// Name of the plugin used in the plugin registry and configurations.
-	Name          = "PreemptionToleration"
-	AnnotationKey = "scheduling.sigs.k8s.io/preemption-toleration"
+	Name                = "PreemptionToleration"
+	AnnotationKeyPrefix = "preemption-toleration.scheduling.sigs.k8s.io/"
 )
 
 var (
@@ -225,27 +223,6 @@ func CanToleratePreemption(
 		!now.After(scheduledCondition.LastTransitionTime.Time.Add(time.Duration(*policy.TolerationSeconds)*time.Second))
 
 	return canTolerateOnPriorityValue && canTolerateOnTolerationSeconds, nil
-}
-
-func getCompletedPreemptionToleration(
-	pc schedulingv1.PriorityClass,
-) (*config.PreemptionToleration, error) {
-	tolerationConfigRaw, ok := pc.Annotations[AnnotationKey]
-	if !ok {
-		return nil, nil
-	}
-
-	pt := &config.PreemptionToleration{}
-	_, _, err := configDecoder.Decode(([]byte)(tolerationConfigRaw), nil, pt)
-	if err != nil {
-		return nil, err
-	}
-
-	if pt.MinimumPreemptablePriority == nil {
-		pt.MinimumPreemptablePriority = pointer.Int32Ptr(pc.Value + 1)
-	}
-
-	return pt, nil
 }
 
 // FindCandidates calculates a slice of preemption candidates.

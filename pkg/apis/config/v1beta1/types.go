@@ -162,16 +162,3 @@ type PreemptionTolerationArgs struct {
 	// 0 nodes. Defaults to 100 nodes if unspecified.
 	MinCandidateNodesAbsolute *int32 `json:"minCandidateNodesAbsolute,omitempty"`
 }
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// PreemptionToleration holds preemption toleration configuration used by PreemptionToleration plugin. This configuration will be annotated to PriorityClass resources.
-type PreemptionToleration struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// MinimumPreemptablePriority specifies the minimum priority value that can preempt this priority class. The default value is the value of annotated priority class.
-	MinimumPreemptablePriority *int32 `json:"minimumPreemptablePriority,omitempty"`
-
-	// TolerationSeconds specified how long this priority class can tolerate preemption by priorities lower than MinimumPreemptablePriority.  The default value is forever.  Duration means the duration from the pod being scheduled to some node. This value affects only to scheduled pods (no effect on nominated nodes).
-	TolerationSeconds *int64 `json:"tolerationSeconds,omitempty"`
-}

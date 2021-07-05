@@ -35,16 +35,15 @@ preemption toleration policy can be defined on each `PriorityClass` resource by 
 ```yaml
 # PriorityClass with PreemptionToleration policy:
 # Any pod P in this priority class can not be preempted (can tolerate preemption)
+# - you need "enabled" annotation key explicitly to enable preemption toleration policy
 # - by preemptor pods with priority < 10000 
 # - and if P is within 1h since being scheduled
 kind: PriorityClass
 metadata:
   name: toleration-policy-sample
   annotation:
-    scheduling.sigs.k8s.io/preemption-toleration: |
-      apiVersion: scheduling.sigs.k8s.io/v1beta1
-      kind: PreemptionToleration
-      minimumPreemptablePriority: 10000
-      tolerationSeconds: 3600
+    preemption-toleration.scheduling.sigs.k8s.io/enabled: ""
+    preemption-toleration.scheduling.sigs.k8s.io/minimum-preemptable-priority: "10000"
+    preemption-toleration.scheduling.sigs.k8s.io/toleration-seconds: "3600"
 value: 8000
 ```

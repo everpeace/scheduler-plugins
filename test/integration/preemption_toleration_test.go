@@ -17,6 +17,7 @@ limitations under the License.
 package integration
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -34,10 +35,8 @@ import (
 	testutils "k8s.io/kubernetes/test/integration/util"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/scheduler-plugins/pkg/apis/config/v1beta1"
 	"sigs.k8s.io/scheduler-plugins/pkg/preemptiontoleration"
 	"sigs.k8s.io/scheduler-plugins/test/util"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -71,7 +70,7 @@ func TestPreemptionTolerationPlugin(t *testing.T) {
 	}{
 		{
 			name: "can tolerate the preemption because preemptor's priority < MinimumPreemptablePriority(=testPriority+10)",
-			priorityClass: makeTestPriorityClass(t, &v1beta1.PreemptionToleration{
+			priorityClass: makeTestPriorityClass(t, &preemptiontoleration.PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(testPriority + 10),
 			}),
 			preemptor:   mkPreemptor(testPriority + 9),
@@ -79,7 +78,7 @@ func TestPreemptionTolerationPlugin(t *testing.T) {
 		},
 		{
 			name: "can NOT tolerate the preemption because preemptor's priority >= MinimumPreemptablePriority(=testPriority+10)",
-			priorityClass: makeTestPriorityClass(t, &v1beta1.PreemptionToleration{
+			priorityClass: makeTestPriorityClass(t, &preemptiontoleration.PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(testPriority + 10),
 			}),
 			preemptor:   mkPreemptor(testPriority + 10),
@@ -87,7 +86,7 @@ func TestPreemptionTolerationPlugin(t *testing.T) {
 		},
 		{
 			name: "when preemptor's priority >= MinimumPreemptablePriority(=testPriority+10), TolerationSeconds has no effect (it can NOT tolerate the preemption)",
-			priorityClass: makeTestPriorityClass(t, &v1beta1.PreemptionToleration{
+			priorityClass: makeTestPriorityClass(t, &preemptiontoleration.PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(testPriority + 10),
 				TolerationSeconds:          pointer.Int64Ptr(30),
 			}),
@@ -96,7 +95,7 @@ func TestPreemptionTolerationPlugin(t *testing.T) {
 		},
 		{
 			name: "when preemptor's priority < MinimumPreemptablePriority(=testPriority+10), it can tolerate the preemption in TolerationSeconds",
-			priorityClass: makeTestPriorityClass(t, &v1beta1.PreemptionToleration{
+			priorityClass: makeTestPriorityClass(t, &preemptiontoleration.PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(testPriority + 10),
 				TolerationSeconds:          pointer.Int64Ptr(30),
 			}),
@@ -105,7 +104,7 @@ func TestPreemptionTolerationPlugin(t *testing.T) {
 		},
 		{
 			name: "when preemptor's priority < MinimumPreemptablePriority(=testPriority+10), it can NOT tolerate the preemption after TolerationSeconds elapsed",
-			priorityClass: makeTestPriorityClass(t, &v1beta1.PreemptionToleration{
+			priorityClass: makeTestPriorityClass(t, &preemptiontoleration.PreemptionTolerationPolicy{
 				MinimumPreemptablePriority: pointer.Int32Ptr(testPriority + 10),
 				TolerationSeconds:          pointer.Int64Ptr(5),
 			}),
@@ -234,7 +233,7 @@ func consistently(interval, duration time.Duration, condition func() (bool, erro
 	}
 }
 
-func makeTestPriorityClass(t *testing.T, pt *v1beta1.PreemptionToleration) *schedulingv1.PriorityClass {
+func makeTestPriorityClass(t *testing.T, policy *preemptiontoleration.PreemptionTolerationPolicy) *schedulingv1.PriorityClass {
 	pc := &schedulingv1.PriorityClass{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: schedulingv1.SchemeGroupVersion.String(),
@@ -243,14 +242,16 @@ func makeTestPriorityClass(t *testing.T, pt *v1beta1.PreemptionToleration) *sche
 		ObjectMeta: metav1.ObjectMeta{Name: testPriorityClassName, Annotations: map[string]string{}},
 		Value:      testPriority,
 	}
-	if pt != nil {
-		pt.APIVersion = v1beta1.SchemeGroupVersion.String()
-		pt.Kind = "PreemptionToleration"
-		raw, err := yaml.Marshal(pt)
-		if err != nil {
-			t.Fatal(err)
-		}
-		pc.Annotations[preemptiontoleration.AnnotationKey] = string(raw)
+	if policy == nil {
+		return pc
+	}
+
+	pc.Annotations[preemptiontoleration.AnnotationKeyPrefix+"enabled"] = ""
+	if policy.MinimumPreemptablePriority != nil {
+		pc.Annotations[preemptiontoleration.AnnotationKeyPrefix+"minimum-preemptable-priority"] = fmt.Sprintf("%d", *policy.MinimumPreemptablePriority)
+	}
+	if policy.TolerationSeconds != nil {
+		pc.Annotations[preemptiontoleration.AnnotationKeyPrefix+"toleration-seconds"] = fmt.Sprintf("%d", *policy.TolerationSeconds)
 	}
 	return pc
 }
